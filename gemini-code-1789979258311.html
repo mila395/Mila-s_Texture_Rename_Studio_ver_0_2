@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mlia's Texture Rename Studio Web</title>
+  <!-- 프리텐다드 폰트 CDN -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <!-- JSZip & FileSaver CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Pretendard Variable", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    body { background-color: #1E1E1E; color: #FFFFFF; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* 상단바 */
+    header { background-color: #2C2C2C; border-bottom: 2px solid #444; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .btn { background-color: #18A0FB; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    .btn:hover { background-color: #0B89DF; }
+    .btn-success { background-color: #1BC47D; } .btn-success:hover { background-color: #14A366; }
+    .btn-danger { background-color: #F24822; } .btn-danger:hover { background-color: #D13615; }
+    .btn-warning { background-color: #FFCD29; color: #1E1E1E; } .btn-warning:hover { background-color: #E5B620; }
+    
+    /* 레이아웃 */
+    .container { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 320px; background-color: #2C2C2C; border-right: 2px solid #444; display: flex; flex-direction: column; }
+    .main-panel { flex: 1; display: flex; flex-direction: column; background-color: #1E1E1E; overflow-y: auto; padding: 20px; }
+    
+    .panel-title { font-weight: bold; font-size: 14px; padding: 12px; background-color: #282828; border-bottom: 1px solid #444; color: #B3B3B3; }
+    .list-box { flex: 1; overflow-y: auto; list-style: none; }
+    .list-item { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #383838; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+    .list-item:hover { background-color: #383838; }
+    .list-item.active { background-color: #18A0FB; color: white; }
+
+    /* 뷰어 & 컨트롤 */
+    .preview-container { background-color: #111; border: 1px solid #444; border-radius: 6px; height: 320px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; margin-bottom: 15px; }
+    .preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    
+    .files-card { background-color: #2C2C2C; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+    .file-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #383838; gap: 10px; }
+    .file-name { flex: 1; font-size: 13px; cursor: pointer; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .file-name.active { color: #18A0FB; font-weight: bold; }
+    
+    .map-btns { display: flex; gap: 4px; }
+    .map-btn { background-color: #383838; color: white; border: none; padding: 4px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; font-weight: bold; }
+    .map-btn.selected { background-color: #18A0FB; }
+    
+    select.ext-select { background-color: #383838; color: white; border: 1px solid #555; padding: 3px 6px; border-radius: 3px; font-size: 12px; }
+
+    /* 하위 입력 및 태그 영역 */
+    .bottom-panel { background-color: #2C2C2C; border-radius: 6px; padding: 15px; margin-top: auto; }
+    .input-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .input-field { background-color: #383838; border: 1px solid #555; color: white; padding: 8px 12px; border-radius: 4px; font-size: 14px; flex: 1; }
+    .tags-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
+    .tag-btn { background-color: #383838; color: #B3B3B3; border: none; padding: 4px 8px; border-radius: 3px; font-size: 12px; cursor: pointer; }
+    .tag-btn:hover { background-color: #444; color: white; }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <label class="btn btn-success">
+        📁 폴더 / 파일 선택
+        <input type="file" id="fileInput" webkitdirectory directory multiple class="hidden">
+      </label>
+      <span id="statusText" style="font-size: 13px; color: #B3B3B3;">폴더를 올려주세요.</span>
+    </div>
+    <button class="btn btn-warning" id="downloadZipBtn">🚀 정리된 ZIP 압축파일 다운로드</button>
+  </header>
+
+  <div class="container">
+    <!-- 사이드바 -->
+    <div class="sidebar">
+      <div class="panel-title">📂 전체 텍스처 세트 목록</div>
+      <ul class="list-box" id="setsList"></ul>
+    </div>
+
+    <!-- 작업 메인 패널 -->
+    <div class="main-panel">
+      <div class="preview-container">
+        <img id="previewImg" class="preview-img hidden" src="" alt="미리보기">
+        <span id="noImgText" style="color: #B3B3B3; font-size: 14px;">선택된 이미지가 없습니다</span>
+      </div>
+
+      <div class="files-card">
+        <div style="font-weight: bold; font-size: 13px; color: #18A0FB; margin-bottom: 10px;" id="currentSetTitle">📍 세트 구성 파일</div>
+        <div id="fileRows"></div>
+      </div>
+
+      <div class="bottom-panel">
+        <div class="input-group">
+          <label style="font-size: 13px; font-weight: bold;">재질 이름 지정:</label>
+          <input type="text" id="materialInput" class="input-field" placeholder="예: Concrete_Dark">
+          <button class="btn btn-danger" id="clearTagBtn">지우기 ⌫</button>
+        </div>
+
+        <div class="tags-grid" id="tagsContainer"></div>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-danger" id="deleteSetBtn" style="flex: 1;">🗑️ 세트 제외</button>
+          <button class="btn" id="applyRenameBtn" style="flex: 2;">✅ 현재 세트 적용</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MAP_TYPES = ["A", "N", "AO", "R", "M", "Op", "D"];
+    const DEFAULT_KEYWORDS = ["Wood", "Metal", "Rock", "Brick", "Concrete", "Fabric", "Plastic", "Ground", "Dirty", "Clean", "Old", "New", "Dark", "Light", "Wall", "Floor", "Rust", "Scratch"];
+    
+    let textureGroups = []; // { coreName, folder, items: [{ file, mapType, targetExt }] }
+    let currentIndex = 0;
+
+    const fileInput = document.getElementById('fileInput');
+    const setsList = document.getElementById('setsList');
+    const fileRows = document.getElementById('fileRows');
+    const previewImg = document.getElementById('previewImg');
+    const noImgText = document.getElementById('noImgText');
+    const materialInput = document.getElementById('materialInput');
+    const tagsContainer = document.getElementById('tagsContainer');
+    const statusText = document.getElementById('statusText');
+
+    // 태그 버튼 생성
+    DEFAULT_KEYWORDS.forEach(kw => {
+      const btn = document.createElement('button');
+      btn.className = 'tag-btn';
+      btn.textContent = kw;
+      btn.onclick = () => {
+        const val = materialInput.value.trim();
+        materialInput.value = val ? (val.endsWith('_') ? val + kw : val + '_' + kw) : kw;
+      };
+      tagsContainer.appendChild(btn);
+    });
+
+    document.getElementById('clearTagBtn').onclick = () => {
+      const val = materialInput.value.trim();
+      if (val.includes('_')) materialInput.value = val.substring(0, val.lastIndexOf('_'));
+      else materialInput.value = '';
+    };
+
+    // 파일 로드 및 그룹핑
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+
+      const groups = {};
+      files.forEach(file => {
+        const name = file.name;
+        const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
+        const ext = name.substring(name.lastIndexOf('.')).toLowerCase();
+        
+        let mapType = "A";
+        if (/normal|nrm|nor|bump/i.test(name)) mapType = "N";
+        else if (/ao|ambient/i.test(name)) mapType = "AO";
+        else if (/roughness|rough|rgh/i.test(name)) mapType = "R";
+        else if (/metallic|metal/i.test(name)) mapType = "M";
+        else if (/displacement|disp|height/i.test(name)) mapType = "D";
+        else if (/opacity|alpha/i.test(name)) mapType = "Op";
+
+        const coreName = nameWithoutExt.replace(/(albedo|color|diffuse|normal|nrm|ao|roughness|rough|metallic|metal|disp|height|opacity|alpha|_a|_n|_ao|_r|_m|_d|_op)/gi, '').replace(/[\-_ ]+/g, '_').replace(/^_|_$/g, '') || "Material";
+        
+        const key = coreName;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push({ file, mapType, targetExt: ext, originalName: name });
+      });
+
+      textureGroups = Object.keys(groups).map(coreName => ({
+        coreName,
+        materialName: coreName,
+        items: groups[coreName]
+      }));
+
+      currentIndex = 0;
+      statusText.textContent = `총 ${textureGroups.length}개의 세트가 감지되었습니다.`;
+      renderGroupList();
+      showGroup(0);
+    });
+
+    function renderGroupList() {
+      setsList.innerHTML = '';
+      textureGroups.forEach((grp, idx) => {
+        const li = document.createElement('li');
+        li.className = `list-item ${idx === currentIndex ? 'active' : ''}`;
+        li.textContent = `[${idx + 1}] ${grp.items[0].originalName}`;
+        li.onclick = () => { currentIndex = idx; showGroup(idx); renderGroupList(); };
+        setsList.appendChild(li);
+      });
+    }
+
+    function showGroup(index) {
+      if (!textureGroups[index]) return;
+      const grp = textureGroups[index];
+      materialInput.value = grp.materialName;
+      fileRows.innerHTML = '';
+
+      // 첫번째 알베도 또는 첫 이미지 미리보기
+      const previewFile = (grp.items.find(i => i.mapType === 'A') || grp.items[0]).file;
+      setPreview(previewFile);
+
+      grp.items.forEach((item, itemIdx) => {
+        const row = document.createElement('div');
+        row.className = 'file-row';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'file-name';
+        nameSpan.textContent = `📄 ${item.originalName}`;
+        nameSpan.onclick = () => setPreview(item.file);
+
+        const btnsDiv = document.createElement('div');
+        btnsDiv.className = 'map-btns';
+        MAP_TYPES.forEach(mt => {
+          const btn = document.createElement('button');
+          btn.className = `map-btn ${item.mapType === mt ? 'selected' : ''}`;
+          btn.textContent = mt;
+          btn.onclick = () => { item.mapType = mt; showGroup(index); };
+          btnsDiv.appendChild(btn);
+        });
+
+        const select = document.createElement('select');
+        select.className = 'ext-select';
+        [".png", ".jpg", ".tga", ".webp"].forEach(ext => {
+          const opt = document.createElement('option');
+          opt.value = ext; opt.textContent = ext;
+          if (item.targetExt === ext) opt.selected = true;
+          select.appendChild(opt);
+        });
+        select.onchange = (e) => { item.targetExt = e.target.value; };
+
+        row.appendChild(nameSpan);
+        row.appendChild(btnsDiv);
+        row.appendChild(select);
+        fileRows.appendChild(row);
+      });
+    }
+
+    function setPreview(file) {
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewImg.classList.remove('hidden');
+      noImgText.classList.add('hidden');
+    }
+
+    document.getElementById('applyRenameBtn').onclick = () => {
+      if (!textureGroups[currentIndex]) return;
+      textureGroups[currentIndex].materialName = materialInput.value.trim() || "Material";
+      alert("세트 설정이 저장되었습니다.");
+      renderGroupList();
+    };
+
+    document.getElementById('deleteSetBtn').onclick = () => {
+      if (!textureGroups[currentIndex]) return;
+      textureGroups.splice(currentIndex, 1);
+      if (currentIndex >= textureGroups.length) currentIndex = Math.max(0, textureGroups.length - 1);
+      renderGroupList();
+      if (textureGroups.length) showGroup(currentIndex);
+      else { fileRows.innerHTML = ''; previewImg.classList.add('hidden'); noImgText.classList.remove('hidden'); }
+    };
+
+    // ZIP 다운로드
+    document.getElementById('downloadZipBtn').onclick = () => {
+      if (!textureGroups.length) return alert("처리할 텍스처 파일이 없습니다.");
+      
+      const zip = new JSZip();
+      const folderCounters = {};
+
+      textureGroups.forEach(grp => {
+        const mat = grp.materialName;
+        const count = (folderCounters[mat] || 0) + 1;
+        folderCounters[mat] = count;
+        const numStr = String(count).padStart(2, '0');
+
+        const folderName = mat.split('_')[0];
+        const folder = zip.folder(folderName);
+
+        grp.items.forEach(item => {
+          const newName = `${mat}_${numStr}_${item.mapType}${item.targetExt}`;
+          folder.file(newName, item.file);
+        });
+      });
+
+      zip.generateAsync({ type: "blob" }).then(content => {
+        saveAs(content, "Renamed_Textures.zip");
+      });
+    };
+  </script>
+</body>
+</html>
