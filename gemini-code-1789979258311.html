@@ -3,59 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mlia's Texture Rename Studio Web</title>
-  <!-- 프리텐다드 폰트 CDN -->
+  <title>Mlia's Texture Rename Studio ver.0.2 (Web)</title>
+  <!-- Pretendard 폰트 CDN -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
-  <!-- JSZip & FileSaver CDN -->
+  <!-- JSZip & FileSaver CDN (폴더 직접 수정 미지원 브라우저용 백업) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Pretendard Variable", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Pretendard Variable", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; user-select: none; }
     body { background-color: #1E1E1E; color: #FFFFFF; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-    /* 상단바 */
-    header { background-color: #2C2C2C; border-bottom: 2px solid #444; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
-    .btn { background-color: #18A0FB; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    /* Top Bar */
+    header { background-color: #2C2C2C; border-bottom: 2px solid #444; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; z-index: 10; }
+    .btn { background-color: #18A0FB; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
     .btn:hover { background-color: #0B89DF; }
     .btn-success { background-color: #1BC47D; } .btn-success:hover { background-color: #14A366; }
     .btn-danger { background-color: #F24822; } .btn-danger:hover { background-color: #D13615; }
     .btn-warning { background-color: #FFCD29; color: #1E1E1E; } .btn-warning:hover { background-color: #E5B620; }
+    .btn-secondary { background-color: #383838; color: #FFF; border: 1px solid #444; } .btn-secondary:hover { background-color: #444; }
     
-    /* 레이아웃 */
-    .container { display: flex; flex: 1; overflow: hidden; }
-    .sidebar { width: 320px; background-color: #2C2C2C; border-right: 2px solid #444; display: flex; flex-direction: column; }
-    .main-panel { flex: 1; display: flex; flex-direction: column; background-color: #1E1E1E; overflow-y: auto; padding: 20px; }
+    /* Main Layout */
+    .main-container { display: flex; flex: 1; overflow: hidden; }
     
-    .panel-title { font-weight: bold; font-size: 14px; padding: 12px; background-color: #282828; border-bottom: 1px solid #444; color: #B3B3B3; }
+    /* Left Sidebar (3-tier) */
+    .sidebar { width: 340px; min-width: 340px; background-color: #2C2C2C; border-right: 2px solid #444; display: flex; flex-direction: column; }
+    .sidebar-section { flex: 1; display: flex; flex-direction: column; border-bottom: 1px solid #444; min-height: 120px; overflow: hidden; }
+    .sidebar-section.large { flex: 1.5; border-bottom: none; }
+    .panel-title { font-weight: bold; font-size: 13px; padding: 8px 12px; background-color: #242424; color: #B3B3B3; border-bottom: 1px solid #383838; }
     .list-box { flex: 1; overflow-y: auto; list-style: none; }
-    .list-item { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #383838; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
-    .list-item:hover { background-color: #383838; }
-    .list-item.active { background-color: #18A0FB; color: white; }
+    .list-item { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #333; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: #DDD; }
+    .list-item:hover { background-color: #383838; color: #FFF; }
+    .list-item.active { background-color: #18A0FB; color: white; font-weight: bold; }
 
-    /* 뷰어 & 컨트롤 */
-    .preview-container { background-color: #111; border: 1px solid #444; border-radius: 6px; height: 320px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; margin-bottom: 15px; }
-    .preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    /* Right Work Panel */
+    .work-panel { flex: 1; display: flex; flex-direction: column; background-color: #1E1E1E; padding: 15px 20px; overflow-y: auto; gap: 12px; }
     
-    .files-card { background-color: #2C2C2C; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
-    .file-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #383838; gap: 10px; }
-    .file-name { flex: 1; font-size: 13px; cursor: pointer; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-    .file-name.active { color: #18A0FB; font-weight: bold; }
+    .nav-bar { display: flex; justify-content: space-between; align-items: center; }
+    .hint-text { font-size: 12px; color: #B3B3B3; }
+
+    /* Canvas Viewport */
+    .canvas-wrapper { background-color: #111; border: 1px solid #444; border-radius: 6px; height: 360px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    canvas { cursor: crosshair; display: block; }
+    .reset-crop-btn { position: absolute; top: 10px; right: 10px; z-index: 5; }
+
+    /* Files Panel */
+    .files-card { background-color: #2C2C2C; border-radius: 6px; padding: 12px 15px; border: 1px solid #383838; }
+    .file-row { display: flex; align-items: center; padding: 4px 0; gap: 8px; }
     
-    .map-btns { display: flex; gap: 4px; }
-    .map-btn { background-color: #383838; color: white; border: none; padding: 4px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; font-weight: bold; }
+    /* 버튼 쏠림 방지 고정 너비 컨테이너 */
+    .file-name-container { width: 380px; min-width: 380px; height: 28px; display: flex; align-items: center; overflow: hidden; }
+    .file-name-label { font-size: 13px; color: #FFF; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .file-name-label.active { color: #18A0FB; font-weight: bold; }
+    
+    .map-btns { display: flex; gap: 3px; }
+    .map-btn { background-color: #383838; color: #FFF; border: none; width: 32px; height: 26px; border-radius: 3px; font-size: 11px; font-weight: bold; cursor: pointer; }
     .map-btn.selected { background-color: #18A0FB; }
     
-    select.ext-select { background-color: #383838; color: white; border: 1px solid #555; padding: 3px 6px; border-radius: 3px; font-size: 12px; }
+    select.ext-select { background-color: #383838; color: #FFF; border: 1px solid #555; height: 26px; padding: 0 6px; border-radius: 3px; font-size: 11px; font-weight: bold; margin-left: 10px; }
 
-    /* 하위 입력 및 태그 영역 */
-    .bottom-panel { background-color: #2C2C2C; border-radius: 6px; padding: 15px; margin-top: auto; }
-    .input-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .input-field { background-color: #383838; border: 1px solid #555; color: white; padding: 8px 12px; border-radius: 4px; font-size: 14px; flex: 1; }
-    .tags-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
-    .tag-btn { background-color: #383838; color: #B3B3B3; border: none; padding: 4px 8px; border-radius: 3px; font-size: 12px; cursor: pointer; }
-    .tag-btn:hover { background-color: #444; color: white; }
+    /* Bottom Control Panel */
+    .bottom-panel { background-color: #2C2C2C; border-radius: 6px; padding: 15px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #383838; }
+    .input-row { display: flex; align-items: center; gap: 10px; }
+    .input-row label { font-size: 13px; font-weight: bold; white-space: nowrap; }
+    .text-input { background-color: #383838; border: 1px solid #555; color: #FFF; padding: 6px 10px; border-radius: 4px; font-size: 13px; outline: none; }
+    .text-input:focus { border-color: #18A0FB; }
     
+    .tags-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tag-btn { background-color: #222; color: #B3B3B3; border: 1px solid #444; padding: 4px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; }
+    .tag-btn:hover { background-color: #383838; color: #FFF; }
+    
+    .action-row { display: flex; gap: 10px; margin-top: 5px; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -63,46 +81,72 @@
 
   <header>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <label class="btn btn-success">
-        📁 폴더 / 파일 선택
-        <input type="file" id="fileInput" webkitdirectory directory multiple class="hidden">
+      <button class="btn btn-success" id="openDirDirectBtn">📁 내 폴더 직접 열기 (Chrome/Edge)</button>
+      <label class="btn btn-secondary">
+        📂 폴더 선택 (기타 브라우저)
+        <input type="file" id="fileInputFallback" webkitdirectory directory multiple class="hidden">
       </label>
-      <span id="statusText" style="font-size: 13px; color: #B3B3B3;">폴더를 올려주세요.</span>
+      <span id="statusText" style="font-size: 13px; color: #B3B3B3;">프로젝트 폴더를 선택해주세요.</span>
     </div>
-    <button class="btn btn-warning" id="downloadZipBtn">🚀 정리된 ZIP 압축파일 다운로드</button>
+    <button class="btn btn-secondary" id="refreshBtn">🔄 새로고침</button>
   </header>
 
-  <div class="container">
-    <!-- 사이드바 -->
+  <div class="main-container">
+    <!-- 3단 좌측 사이드바 -->
     <div class="sidebar">
-      <div class="panel-title">📂 전체 텍스처 세트 목록</div>
-      <ul class="list-box" id="setsList"></ul>
+      <div class="sidebar-section">
+        <div class="panel-title">📁 하위 폴더 목록</div>
+        <ul class="list-box" id="subfolderList"></ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="panel-title">📄 선택된 폴더 내용</div>
+        <ul class="list-box" id="folderContentList"></ul>
+      </div>
+      <div class="sidebar-section large">
+        <div class="panel-title">📂 전체 세트 목록</div>
+        <ul class="list-box" id="allSetsList"></ul>
+      </div>
     </div>
 
-    <!-- 작업 메인 패널 -->
-    <div class="main-panel">
-      <div class="preview-container">
-        <img id="previewImg" class="preview-img hidden" src="" alt="미리보기">
-        <span id="noImgText" style="color: #B3B3B3; font-size: 14px;">선택된 이미지가 없습니다</span>
+    <!-- 우측 메인 작업 영역 -->
+    <div class="work-panel">
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prevBtn">◀ 이전</button>
+        <span class="hint-text">🖱️ 좌클릭: 자르기 | 🖐️ 휠/우클릭: 이동 | 🔍 마우스 휠/트랙패드: 확대/축소</span>
+        <button class="btn btn-secondary" id="nextBtn">다음 ▶</button>
       </div>
 
+      <!-- 인터랙티브 캔버스 -->
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="mainCanvas"></canvas>
+        <button class="btn btn-secondary reset-crop-btn" id="resetCropBtn">🔄 자르기 리셋</button>
+      </div>
+
+      <!-- 파일 목록 카드 -->
       <div class="files-card">
-        <div style="font-weight: bold; font-size: 13px; color: #18A0FB; margin-bottom: 10px;" id="currentSetTitle">📍 세트 구성 파일</div>
+        <div style="font-size: 13px; font-weight: bold; color: #18A0FB; margin-bottom: 8px;" id="pathLabel">📍 경로: (파일 이름을 클릭하여 미리보기)</div>
         <div id="fileRows"></div>
       </div>
 
+      <!-- 하단 콘트롤러 -->
       <div class="bottom-panel">
-        <div class="input-group">
-          <label style="font-size: 13px; font-weight: bold;">재질 이름 지정:</label>
-          <input type="text" id="materialInput" class="input-field" placeholder="예: Concrete_Dark">
-          <button class="btn btn-danger" id="clearTagBtn">지우기 ⌫</button>
+        <div class="input-row">
+          <label>재질 이름 지정:</label>
+          <input type="text" id="materialInput" class="text-input" style="width: 220px; font-size: 14px; font-weight: bold;" placeholder="Material">
+          <button class="btn btn-danger" id="removeTagBtn">지우기 ⌫</button>
+          
+          <span style="color: #666; margin: 0 5px;">|</span>
+          <label style="color: #B3B3B3; font-weight: normal;">새 태그 추가:</label>
+          <input type="text" id="newTagInput" class="text-input" style="width: 110px;" placeholder="태그명">
+          <button class="btn" id="addTagBtn">추가 ➕</button>
         </div>
 
-        <div class="tags-grid" id="tagsContainer"></div>
+        <div class="tags-grid" id="tagsGrid"></div>
 
-        <div style="display: flex; gap: 10px;">
-          <button class="btn btn-danger" id="deleteSetBtn" style="flex: 1;">🗑️ 세트 제외</button>
-          <button class="btn" id="applyRenameBtn" style="flex: 2;">✅ 현재 세트 적용</button>
+        <div class="action-row">
+          <button class="btn btn-danger" id="deleteSetBtn" style="flex: 1;">🗑️ 현재 세트 삭제</button>
+          <button class="btn" id="applySetBtn" style="flex: 1.5;">✅ 현재 세트 적용</button>
+          <button class="btn btn-warning" id="autoApplyAllBtn" style="flex: 1.5;">🚀 남은 세트 자동 정리</button>
         </div>
       </div>
     </div>
@@ -110,119 +154,279 @@
 
   <script>
     const MAP_TYPES = ["A", "N", "AO", "R", "M", "Op", "D"];
-    const DEFAULT_KEYWORDS = ["Wood", "Metal", "Rock", "Brick", "Concrete", "Fabric", "Plastic", "Ground", "Dirty", "Clean", "Old", "New", "Dark", "Light", "Wall", "Floor", "Rust", "Scratch"];
-    
-    let textureGroups = []; // { coreName, folder, items: [{ file, mapType, targetExt }] }
-    let currentIndex = 0;
+    const AVAILABLE_EXTENSIONS = [".png", ".jpg", ".tga", ".tif", ".bmp", ".webp"];
+    const MATERIAL_KEYWORDS = {
+      'wood': 'Wood', 'metal': 'Metal', 'rock': 'Rock', 'stone': 'Rock', 'brick': 'Brick',
+      'concrete': 'Concrete', 'fabric': 'Fabric', 'plastic': 'Plastic', 'ground': 'Ground',
+      'grass': 'Grass', 'sand': 'Sand', 'water': 'Water', 'glass': 'Glass', 'tile': 'Tile'
+    };
+    let defaultKeywords = ["Wood", "Metal", "Rock", "Brick", "Concrete", "Fabric", "Plastic", "Ground", "Dirty", "Clean", "Old", "New", "Dark", "Light", "Wall", "Floor", "Rust", "Scratch"];
 
-    const fileInput = document.getElementById('fileInput');
-    const setsList = document.getElementById('setsList');
+    let rootDirHandle = null; // File System Access API Handle
+    let isDirectMode = false;
+    let textureGroups = []; 
+    let folderStructure = {}; 
+    let currentGroupIndex = 0;
+    let selectedFolderKey = null;
+    let activePreviewIndex = 0;
+
+    // Canvas State
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const wrapper = document.getElementById('canvasWrapper');
+    let loadedImage = null;
+    let zoomFactor = 1.0;
+    let panX = 0, panY = 0;
+    let isPanning = false, isCropping = false;
+    let startMouseX = 0, startMouseY = 0;
+    let cropBox = null;
+
+    // UI Elements
+    const openDirDirectBtn = document.getElementById('openDirDirectBtn');
+    const fileInputFallback = document.getElementById('fileInputFallback');
+    const subfolderList = document.getElementById('subfolderList');
+    const folderContentList = document.getElementById('folderContentList');
+    const allSetsList = document.getElementById('allSetsList');
     const fileRows = document.getElementById('fileRows');
-    const previewImg = document.getElementById('previewImg');
-    const noImgText = document.getElementById('noImgText');
+    const pathLabel = document.getElementById('pathLabel');
     const materialInput = document.getElementById('materialInput');
-    const tagsContainer = document.getElementById('tagsContainer');
+    const newTagInput = document.getElementById('newTagInput');
+    const tagsGrid = document.getElementById('tagsGrid');
     const statusText = document.getElementById('statusText');
 
-    // 태그 버튼 생성
-    DEFAULT_KEYWORDS.forEach(kw => {
-      const btn = document.createElement('button');
-      btn.className = 'tag-btn';
-      btn.textContent = kw;
-      btn.onclick = () => {
-        const val = materialInput.value.trim();
-        materialInput.value = val ? (val.endsWith('_') ? val + kw : val + '_' + kw) : kw;
-      };
-      tagsContainer.appendChild(btn);
-    });
+    function renderTagButtons() {
+      tagsGrid.innerHTML = '';
+      defaultKeywords.forEach(kw => {
+        const btn = document.createElement('button');
+        btn.className = 'tag-btn';
+        btn.textContent = kw;
+        btn.onclick = () => appendKeyword(kw);
+        tagsGrid.appendChild(btn);
+      });
+    }
 
-    document.getElementById('clearTagBtn').onclick = () => {
-      const val = materialInput.value.trim();
+    function appendKeyword(kw) {
+      let val = materialInput.value.trim();
+      if (val && !val.endsWith('_')) val += '_' + kw;
+      else val += kw;
+      materialInput.value = val;
+    }
+
+    document.getElementById('removeTagBtn').onclick = () => {
+      let val = materialInput.value.trim();
       if (val.includes('_')) materialInput.value = val.substring(0, val.lastIndexOf('_'));
       else materialInput.value = '';
     };
 
-    // 파일 로드 및 그룹핑
-    fileInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
-      if (!files.length) return;
+    document.getElementById('addTagBtn').onclick = () => {
+      const kw = newTagInput.value.trim().replace(/\s+/g, '_');
+      if (kw && !defaultKeywords.includes(kw)) {
+        defaultKeywords.push(kw);
+        renderTagButtons();
+      }
+      if (kw) appendKeyword(kw);
+      newTagInput.value = '';
+    };
 
-      const groups = {};
-      files.forEach(file => {
-        const name = file.name;
-        const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
-        const ext = name.substring(name.lastIndexOf('.')).toLowerCase();
-        
-        let mapType = "A";
-        if (/normal|nrm|nor|bump/i.test(name)) mapType = "N";
-        else if (/ao|ambient/i.test(name)) mapType = "AO";
-        else if (/roughness|rough|rgh/i.test(name)) mapType = "R";
-        else if (/metallic|metal/i.test(name)) mapType = "M";
-        else if (/displacement|disp|height/i.test(name)) mapType = "D";
-        else if (/opacity|alpha/i.test(name)) mapType = "Op";
+    function guessMaterialCategory(filename, coreName) {
+      const lower = filename.toLowerCase();
+      for (let k in MATERIAL_KEYWORDS) {
+        if (lower.includes(k)) return MATERIAL_KEYWORDS[k];
+      }
+      return coreName ? coreName.replace(/^_+|_+$/g, '') : "Material";
+    }
 
-        const coreName = nameWithoutExt.replace(/(albedo|color|diffuse|normal|nrm|ao|roughness|rough|metallic|metal|disp|height|opacity|alpha|_a|_n|_ao|_r|_m|_d|_op)/gi, '').replace(/[\-_ ]+/g, '_').replace(/^_|_$/g, '') || "Material";
-        
-        const key = coreName;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push({ file, mapType, targetExt: ext, originalName: name });
+    function extractCoreAndMap(filename) {
+      const extIdx = filename.lastIndexOf('.');
+      const name = filename.substring(0, extIdx);
+      const ext = filename.substring(extIdx).toLowerCase();
+      const lower = name.toLowerCase();
+
+      let mapType = "A";
+      if (/(albedo|base.?color|color|diffuse|diff|(^|[^a-z0-9])(a|c|alb)($|[^a-z0-9]))/i.test(lower)) mapType = "A";
+      else if (/(normal|nrm|nor|bump|(^|[^a-z0-9])n($|[^a-z0-9]))/i.test(lower)) mapType = "N";
+      else if (/(ao|ambient.?occlusion|occ)/i.test(lower)) mapType = "AO";
+      else if (/(roughness|rough|rgh|(^|[^a-z0-9])r($|[^a-z0-9]))/i.test(lower)) mapType = "R";
+      else if (/(metallic|metalness|metal|met|(^|[^a-z0-9])m($|[^a-z0-9]))/i.test(lower)) mapType = "M";
+      else if (/(displacement|disp|height|(^|[^a-z0-9])(d|h)($|[^a-z0-9]))/i.test(lower)) mapType = "D";
+      else if (/(opacity|alpha|transp|(^|[^a-z0-9])op($|[^a-z0-9]))/i.test(lower)) mapType = "Op";
+
+      let core = name.replace(/(albedo|base.?color|color|diffuse|diff|normal|nrm|nor|bump|ao|ambient.?occlusion|occ|roughness|rough|rgh|metallic|metalness|metal|met|displacement|disp|height|opacity|alpha|transp)/gi, '');
+      core = core.replace(/(?:^|[^a-zA-Z0-9])(a|c|alb|n|ao|r|m|d|h|op)(?:[^a-zA-Z0-9]|$)/gi, '_');
+      core = core.replace(/\d+[Kk]/gi, '_').replace(/[\-_ ]+/g, '_').replace(/^_+|_+$/g, '');
+      if (!core) core = "Material";
+
+      return { coreName: core, mapType, ext };
+    }
+
+    // Direct Directory Access (Chrome / Edge)
+    openDirDirectBtn.onclick = async () => {
+      if (!('showDirectoryPicker' in window)) {
+        return alert("현재 브라우저는 내 폴더 직접 수정 기능을 지원하지 않습니다. 우측 '폴더 선택 (기타 브라우저)' 버튼을 이용해주세요.");
+      }
+      try {
+        rootDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        isDirectMode = true;
+        const fileList = [];
+        await scanDirectoryDirect(rootDirHandle, '', fileList);
+        processLoadedFiles(fileList);
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error(err);
+      }
+    };
+
+    async function scanDirectoryDirect(dirHandle, path, fileList) {
+      for await (const entry of dirHandle.values()) {
+        if (entry.name === '삭제') continue;
+        const currentPath = path ? `${path}/${entry.name}` : entry.name;
+        if (entry.kind === 'file') {
+          if (/\.(png|jpg|jpeg|tga|tif|tiff|bmp|webp)$/i.test(entry.name)) {
+            const file = await entry.getFile();
+            fileList.push({ file, relPath: currentPath, handle: entry, parentDirHandle: dirHandle });
+          }
+        } else if (entry.kind === 'directory') {
+          await scanDirectoryDirect(entry, currentPath, fileList);
+        }
+      }
+    }
+
+    // Fallback Directory Selector
+    fileInputFallback.addEventListener('change', (e) => {
+      isDirectMode = false;
+      const files = Array.from(e.target.files).filter(f => {
+        const path = f.webkitRelativePath || f.name;
+        return !path.includes('/삭제/') && /\.(png|jpg|jpeg|tga|tif|tiff|bmp|webp)$/i.test(f.name);
       });
 
-      textureGroups = Object.keys(groups).map(coreName => ({
-        coreName,
-        materialName: coreName,
-        items: groups[coreName]
-      }));
-
-      currentIndex = 0;
-      statusText.textContent = `총 ${textureGroups.length}개의 세트가 감지되었습니다.`;
-      renderGroupList();
-      showGroup(0);
+      const fileList = files.map(f => ({ file: f, relPath: f.webkitRelativePath || f.name }));
+      processLoadedFiles(fileList);
     });
 
-    function renderGroupList() {
-      setsList.innerHTML = '';
+    function processLoadedFiles(fileList) {
+      if (!fileList.length) return alert("이미지 파일을 찾지 못했습니다.");
+
+      const groupsMap = {};
+      folderStructure = {};
+
+      fileList.forEach(item => {
+        const dir = item.relPath.includes('/') ? item.relPath.substring(0, item.relPath.lastIndexOf('/')) : '(최상위 폴더)';
+        const { coreName, mapType, ext } = extractCoreAndMap(item.file.name);
+        const key = `${dir}||${coreName}`;
+
+        if (!groupsMap[key]) {
+          groupsMap[key] = { rootDir: dir, coreName, items: [] };
+        }
+        groupsMap[key].items.push({
+          file: item.file,
+          origName: item.file.name,
+          mapType,
+          ext,
+          targetExt: ext,
+          handle: item.handle,
+          parentDirHandle: item.parentDirHandle
+        });
+      });
+
+      textureGroups = Object.values(groupsMap);
+      textureGroups.forEach((grp, idx) => {
+        if (!folderStructure[grp.rootDir]) folderStructure[grp.rootDir] = [];
+        folderStructure[grp.rootDir].push(idx);
+      });
+
+      currentGroupIndex = 0;
+      statusText.textContent = `총 ${textureGroups.length}개 세트 로드 완료 (${isDirectMode ? '폴더 직접 수정 모드' : 'ZIP 다운로드 모드'})`;
+      renderSidebar();
+      showCurrentGroup();
+    }
+
+    function renderSidebar() {
+      subfolderList.innerHTML = '';
+      Object.keys(folderStructure).sort().forEach(folderKey => {
+        const li = document.createElement('li');
+        li.className = `list-item ${selectedFolderKey === folderKey ? 'active' : ''}`;
+        li.textContent = `📁 ${folderKey}`;
+        li.onclick = () => {
+          selectedFolderKey = folderKey;
+          renderSidebar();
+          renderFolderContentList();
+        };
+        subfolderList.appendChild(li);
+      });
+
+      allSetsList.innerHTML = '';
       textureGroups.forEach((grp, idx) => {
         const li = document.createElement('li');
-        li.className = `list-item ${idx === currentIndex ? 'active' : ''}`;
-        li.textContent = `[${idx + 1}] ${grp.items[0].originalName}`;
-        li.onclick = () => { currentIndex = idx; showGroup(idx); renderGroupList(); };
-        setsList.appendChild(li);
+        li.className = `list-item ${idx === currentGroupIndex ? 'active' : ''}`;
+        li.textContent = `[${idx + 1}] ${grp.items[0].origName} (${grp.rootDir})`;
+        li.onclick = () => {
+          currentGroupIndex = idx;
+          showCurrentGroup();
+          renderSidebar();
+        };
+        allSetsList.appendChild(li);
       });
     }
 
-    function showGroup(index) {
-      if (!textureGroups[index]) return;
-      const grp = textureGroups[index];
-      materialInput.value = grp.materialName;
+    function renderFolderContentList() {
+      folderContentList.innerHTML = '';
+      if (!selectedFolderKey || !folderStructure[selectedFolderKey]) return;
+
+      folderStructure[selectedFolderKey].forEach(grpIdx => {
+        const grp = textureGroups[grpIdx];
+        const li = document.createElement('li');
+        li.className = `list-item ${grpIdx === currentGroupIndex ? 'active' : ''}`;
+        li.textContent = `[${grpIdx + 1}] ${grp.items[0].origName}`;
+        li.onclick = () => {
+          currentGroupIndex = grpIdx;
+          showCurrentGroup();
+          renderSidebar();
+          renderFolderContentList();
+        };
+        folderContentList.appendChild(li);
+      });
+    }
+
+    function showCurrentGroup() {
+      if (!textureGroups[currentGroupIndex]) return;
+      const grp = textureGroups[currentGroupIndex];
+
+      pathLabel.textContent = `📍 경로: ${grp.rootDir} (파일 이름을 클릭하여 미리보기)`;
       fileRows.innerHTML = '';
 
-      // 첫번째 알베도 또는 첫 이미지 미리보기
-      const previewFile = (grp.items.find(i => i.mapType === 'A') || grp.items[0]).file;
-      setPreview(previewFile);
+      activePreviewIndex = 0;
+      grp.items.forEach((item, idx) => {
+        if (item.mapType === 'A') activePreviewIndex = idx;
+      });
 
-      grp.items.forEach((item, itemIdx) => {
+      grp.items.forEach((item, idx) => {
         const row = document.createElement('div');
         row.className = 'file-row';
 
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'file-name';
-        nameSpan.textContent = `📄 ${item.originalName}`;
-        nameSpan.onclick = () => setPreview(item.file);
+        const nameContainer = document.createElement('div');
+        nameContainer.className = 'file-name-container';
 
-        const btnsDiv = document.createElement('div');
-        btnsDiv.className = 'map-btns';
+        const lbl = document.createElement('div');
+        lbl.className = `file-name-label ${idx === activePreviewIndex ? 'active' : ''}`;
+        lbl.textContent = `${idx === activePreviewIndex ? '👁️' : '📄'} ${item.origName}`;
+        lbl.onclick = () => {
+          activePreviewIndex = idx;
+          showCurrentGroup();
+        };
+        nameContainer.appendChild(lbl);
+
+        const btns = document.createElement('div');
+        btns.className = 'map-btns';
         MAP_TYPES.forEach(mt => {
           const btn = document.createElement('button');
           btn.className = `map-btn ${item.mapType === mt ? 'selected' : ''}`;
           btn.textContent = mt;
-          btn.onclick = () => { item.mapType = mt; showGroup(index); };
-          btnsDiv.appendChild(btn);
+          btn.onclick = () => { item.mapType = mt; showCurrentGroup(); };
+          btns.appendChild(btn);
         });
 
         const select = document.createElement('select');
         select.className = 'ext-select';
-        [".png", ".jpg", ".tga", ".webp"].forEach(ext => {
+        AVAILABLE_EXTENSIONS.forEach(ext => {
           const opt = document.createElement('option');
           opt.value = ext; opt.textContent = ext;
           if (item.targetExt === ext) opt.selected = true;
@@ -230,62 +434,248 @@
         });
         select.onchange = (e) => { item.targetExt = e.target.value; };
 
-        row.appendChild(nameSpan);
-        row.appendChild(btnsDiv);
+        row.appendChild(nameContainer);
+        row.appendChild(btns);
         row.appendChild(select);
         fileRows.appendChild(row);
       });
+
+      materialInput.value = guessMaterialCategory(grp.items[0].origName, grp.coreName);
+      loadCanvasImage(grp.items[activePreviewIndex].file);
     }
 
-    function setPreview(file) {
+    function loadCanvasImage(file) {
       const url = URL.createObjectURL(file);
-      previewImg.src = url;
-      previewImg.classList.remove('hidden');
-      noImgText.classList.add('hidden');
+      const img = new Image();
+      img.onload = () => {
+        loadedImage = img;
+        resetCropAndZoom();
+      };
+      img.src = url;
     }
 
-    document.getElementById('applyRenameBtn').onclick = () => {
-      if (!textureGroups[currentIndex]) return;
-      textureGroups[currentIndex].materialName = materialInput.value.trim() || "Material";
-      alert("세트 설정이 저장되었습니다.");
-      renderGroupList();
+    function resetCropAndZoom() {
+      if (!loadedImage) return;
+      cropBox = null;
+      const wWidth = wrapper.clientWidth || 800;
+      const wHeight = wrapper.clientHeight || 360;
+      canvas.width = wWidth;
+      canvas.height = wHeight;
+
+      zoomFactor = Math.min(wWidth / loadedImage.width, wHeight / loadedImage.height, 1.0);
+      panX = (wWidth - loadedImage.width * zoomFactor) / 2;
+      panY = (wHeight - loadedImage.height * zoomFactor) / 2;
+      drawCanvas();
+    }
+
+    document.getElementById('resetCropBtn').onclick = resetCropAndZoom;
+
+    function drawCanvas() {
+      if (!loadedImage) return;
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const drawW = loadedImage.width * zoomFactor;
+      const drawH = loadedImage.height * zoomFactor;
+      ctx.drawImage(loadedImage, panX, panY, drawW, drawH);
+
+      if (cropBox) {
+        ctx.strokeStyle = '#F24822';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.strokeRect(cropBox.x1, cropBox.y1, cropBox.x2 - cropBox.x1, cropBox.y2 - cropBox.y1);
+        ctx.setLineDash([]);
+      }
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      startMouseX = e.clientX - rect.left;
+      startMouseY = e.clientY - rect.top;
+
+      if (e.button === 0) {
+        isCropping = true;
+        cropBox = { x1: startMouseX, y1: startMouseY, x2: startMouseX, y2: startMouseY };
+      } else if (e.button === 2 || e.button === 1) {
+        isPanning = true;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const curX = e.clientX - rect.left;
+      const curY = e.clientY - rect.top;
+
+      if (isCropping) {
+        cropBox.x2 = curX;
+        cropBox.y2 = curY;
+        drawCanvas();
+      } else if (isPanning) {
+        panX += curX - startMouseX;
+        panY += curY - startMouseY;
+        startMouseX = curX;
+        startMouseY = curY;
+        drawCanvas();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isCropping) {
+        isCropping = false;
+        if (cropBox && Math.abs(cropBox.x2 - cropBox.x1) < 10) cropBox = null;
+        drawCanvas();
+      }
+      isPanning = false;
+    });
+
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      zoomFactor *= delta;
+      drawCanvas();
+    });
+
+    document.getElementById('prevBtn').onclick = () => {
+      if (currentGroupIndex > 0) { currentGroupIndex--; showCurrentGroup(); renderSidebar(); }
     };
+    document.getElementById('nextBtn').onclick = () => {
+      if (currentGroupIndex < textureGroups.length - 1) { currentGroupIndex++; showCurrentGroup(); renderSidebar(); }
+    };
+    document.getElementById('refreshBtn').onclick = () => location.reload();
 
     document.getElementById('deleteSetBtn').onclick = () => {
-      if (!textureGroups[currentIndex]) return;
-      textureGroups.splice(currentIndex, 1);
-      if (currentIndex >= textureGroups.length) currentIndex = Math.max(0, textureGroups.length - 1);
-      renderGroupList();
-      if (textureGroups.length) showGroup(currentIndex);
-      else { fileRows.innerHTML = ''; previewImg.classList.add('hidden'); noImgText.classList.remove('hidden'); }
+      if (!textureGroups.length) return;
+      textureGroups.splice(currentGroupIndex, 1);
+      if (currentGroupIndex >= textureGroups.length) currentGroupIndex = Math.max(0, textureGroups.length - 1);
+      renderSidebar();
+      if (textureGroups.length) showCurrentGroup();
     };
 
-    // ZIP 다운로드
-    document.getElementById('downloadZipBtn').onclick = () => {
-      if (!textureGroups.length) return alert("처리할 텍스처 파일이 없습니다.");
-      
-      const zip = new JSZip();
-      const folderCounters = {};
+    document.getElementById('applySetBtn').onclick = () => {
+      if (!textureGroups[currentGroupIndex]) return;
+      const cat = materialInput.value.trim() || "Material";
+      textureGroups[currentGroupIndex].materialName = cat;
+      alert(`✅ [${cat}] 설정이 적용되었습니다.`);
+      renderSidebar();
+    };
 
-      textureGroups.forEach(grp => {
-        const mat = grp.materialName;
-        const count = (folderCounters[mat] || 0) + 1;
-        folderCounters[mat] = count;
-        const numStr = String(count).padStart(2, '0');
+    // Auto Apply All Execution Logic
+    document.getElementById('autoApplyAllBtn').onclick = async () => {
+      if (!textureGroups.length) return alert("처리할 세트가 없습니다.");
 
-        const folderName = mat.split('_')[0];
-        const folder = zip.folder(folderName);
+      statusText.textContent = "⏳ 정리 작업 진행 중...";
 
-        grp.items.forEach(item => {
-          const newName = `${mat}_${numStr}_${item.mapType}${item.targetExt}`;
-          folder.file(newName, item.file);
+      if (isDirectMode && rootDirHandle) {
+        // Direct Write to Local Hard Drive (Chrome / Edge)
+        try {
+          const categoryCounters = {};
+
+          for (let i = 0; i < textureGroups.length; i++) {
+            const grp = textureGroups[i];
+            const cat = grp.materialName || "Material";
+            categoryCounters[cat] = (categoryCounters[cat] || 0) + 1;
+            const numStr = String(categoryCounters[cat]).padStart(2, '0');
+            const targetDirName = cat.split('_')[0];
+
+            const targetDirHandle = await rootDirHandle.getDirectoryHandle(targetDirName, { create: true });
+
+            for (let j = 0; j < grp.items.length; j++) {
+              const item = grp.items[j];
+              const targetName = `${cat}_${numStr}_${item.mapType}${item.targetExt}`;
+
+              const processedBlob = await getProcessedImageBlob(item.file, item.targetExt);
+              const newFileHandle = await targetDirHandle.getFileHandle(targetName, { create: true });
+              const writable = await newFileHandle.createWritable();
+              await writable.write(processedBlob);
+              await writable.close();
+
+              // Clean up original file if moved
+              if (item.parentDirHandle && item.origName !== targetName) {
+                try { await item.parentDirHandle.removeEntry(item.origName); } catch (e) {}
+              }
+            }
+          }
+          alert("🎉 내 컴퓨터 폴더에 텍스처 파일이 성공적으로 직접 정리되었습니다!");
+          location.reload();
+        } catch (err) {
+          console.error(err);
+          alert("파일 저장 중 오류가 발생하였습니다. 권한을 확인해주세요.");
+        }
+      } else {
+        // ZIP Download Fallback Mode
+        const zip = new JSZip();
+        const categoryCounters = {};
+
+        for (let i = 0; i < textureGroups.length; i++) {
+          const grp = textureGroups[i];
+          const cat = grp.materialName || "Material";
+          categoryCounters[cat] = (categoryCounters[cat] || 0) + 1;
+          const numStr = String(categoryCounters[cat]).padStart(2, '0');
+          const folderName = cat.split('_')[0];
+          const folder = zip.folder(folderName);
+
+          for (let j = 0; j < grp.items.length; j++) {
+            const item = grp.items[j];
+            const targetName = `${cat}_${numStr}_${item.mapType}${item.targetExt}`;
+            const processedBlob = await getProcessedImageBlob(item.file, item.targetExt);
+            folder.file(targetName, processedBlob);
+          }
+        }
+
+        zip.generateAsync({ type: "blob" }).then(blob => {
+          saveAs(blob, "Renamed_Textures.zip");
+          statusText.textContent = "🎉 ZIP 압축 다운로드가 완료되었습니다!";
         });
-      });
-
-      zip.generateAsync({ type: "blob" }).then(content => {
-        saveAs(content, "Renamed_Textures.zip");
-      });
+      }
     };
+
+    function getProcessedImageBlob(file, targetExt) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const offCanvas = document.createElement('canvas');
+          let sx = 0, sy = 0, sw = img.width, sh = img.height;
+
+          if (cropBox && loadedImage) {
+            const relX1 = Math.max(0, (cropBox.x1 - panX) / (loadedImage.width * zoomFactor));
+            const relY1 = Math.max(0, (cropBox.y1 - panY) / (loadedImage.height * zoomFactor));
+            const relX2 = Math.min(1, (cropBox.x2 - panX) / (loadedImage.width * zoomFactor));
+            const relY2 = Math.min(1, (cropBox.y2 - panY) / (loadedImage.height * zoomFactor));
+
+            sx = relX1 * img.width;
+            sy = relY1 * img.height;
+            sw = (relX2 - relX1) * img.width;
+            sh = (relY2 - relY1) * img.height;
+          }
+
+          offCanvas.width = sw;
+          offCanvas.height = sh;
+          const offCtx = offCanvas.getContext('2d');
+          offCtx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+          let mimeType = 'image/png';
+          if (targetExt === '.jpg' || targetExt === '.jpeg') mimeType = 'image/jpeg';
+          else if (targetExt === '.webp') mimeType = 'image/webp';
+
+          offCanvas.toBlob((blob) => {
+            resolve(blob || file);
+          }, mimeType, 0.95);
+        };
+        img.onerror = () => resolve(file);
+        img.src = url;
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && document.activeElement !== newTagInput) {
+        document.getElementById('applySetBtn').click();
+      }
+    });
+
+    renderTagButtons();
   </script>
 </body>
 </html>
