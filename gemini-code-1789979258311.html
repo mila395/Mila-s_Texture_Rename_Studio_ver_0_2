@@ -36,7 +36,7 @@
     .list-item:hover { background-color: #383838; color: #FFF; }
     .list-item.active { background-color: #18A0FB; color: white; font-weight: bold; }
 
-    /* Resizer / Splitter Bars */
+    /* Resizer Splitter Bars */
     .resizer-h { width: 6px; background-color: #383838; cursor: col-resize; transition: background 0.2s; z-index: 5; flex-shrink: 0; }
     .resizer-h:hover, .resizer-h.active { background-color: #18A0FB; }
     
@@ -49,7 +49,7 @@
     .nav-bar { display: flex; justify-content: space-between; align-items: center; }
     .hint-text { font-size: 12px; color: #B3B3B3; }
 
-    /* Canvas Viewport (한계 해제) */
+    /* Canvas Viewport */
     .canvas-wrapper { background-color: #111; border: 1px solid #444; border-radius: 6px; height: 360px; min-height: 50px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     canvas { cursor: crosshair; display: block; }
     .reset-crop-btn { position: absolute; top: 10px; right: 10px; z-index: 5; }
@@ -137,7 +137,7 @@
         <button class="btn btn-secondary reset-crop-btn" id="resetCropBtn">🔄 자르기 리셋</button>
       </div>
 
-      <!-- 🖼️ 이미지 뷰어 높이 조절 분리선 -->
+      <!-- 이미지 뷰어 높이 조절 분리선 -->
       <div class="resizer-v" id="resizerCanvas" style="border-radius: 3px;"></div>
 
       <!-- 파일 목록 카드 -->
@@ -163,7 +163,7 @@
 
         <div class="action-row">
           <button class="btn btn-danger" id="deleteSetBtn" style="flex: 1;">🗑️ 현재 세트 삭제</button>
-          <button class="btn" id="applySetBtn" style="flex: 1.5;">✅ 현재 세트 적용</button>
+          <button class="btn" id="applySetBtn" style="flex: 1.5;">✅ 현재 세트 즉시 저장/적용 (Enter)</button>
           <button class="btn btn-warning" id="autoApplyAllBtn" style="flex: 1.5;">🚀 남은 세트 자동 정리</button>
         </div>
       </div>
@@ -186,7 +186,7 @@
     let folderStructure = {}; 
     let currentGroupIndex = 0;
     let selectedFolderKey = null;
-    let activePreviewIndex = 0;
+    let categoryCounters = {};
 
     // Canvas State
     const canvas = document.getElementById('mainCanvas');
@@ -213,7 +213,7 @@
     const statusText = document.getElementById('statusText');
 
     // ==========================================
-    // 📐 창 및 이미지 뷰어 크기 조절 (한계 해제 버전)
+    // 📐 창 및 이미지 뷰어 크기 조절 Engine
     // ==========================================
     const sidebar = document.getElementById('sidebar');
     const resizerH = document.getElementById('resizerH');
@@ -226,7 +226,6 @@
     secFolder.style.height = '180px';
     secContent.style.height = '180px';
 
-    // 1. 사이드바 좌우 너비 조절 (한계 해제: 100px ~ 화면 전체의 90%)
     resizerH.addEventListener('mousedown', (e) => {
       e.preventDefault();
       resizerH.classList.add('active');
@@ -250,7 +249,6 @@
       window.addEventListener('mouseup', onMouseUp);
     });
 
-    // 2. 사이드바 내부 상하 높이 조절 (한계 해제: 30px ~ 모니터 높이 끝까지)
     function setupVerticalResizer(resizerEl, targetEl) {
       resizerEl.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -278,7 +276,6 @@
     setupVerticalResizer(resizerV1, secFolder);
     setupVerticalResizer(resizerV2, secContent);
 
-    // 3. 🖼️ 이미지 뷰어 (캔버스) 높이 조절 (한계 해제: 50px ~ 화면 전체)
     resizerCanvas.addEventListener('mousedown', (e) => {
       e.preventDefault();
       resizerCanvas.classList.add('active');
@@ -416,6 +413,7 @@
 
       const groupsMap = {};
       folderStructure = {};
+      categoryCounters = {};
 
       fileList.forEach(item => {
         const dir = item.relPath.includes('/') ? item.relPath.substring(0, item.relPath.lastIndexOf('/')) : '(최상위 폴더)';
@@ -437,15 +435,20 @@
       });
 
       textureGroups = Object.values(groupsMap);
-      textureGroups.forEach((grp, idx) => {
-        if (!folderStructure[grp.rootDir]) folderStructure[grp.rootDir] = [];
-        folderStructure[grp.rootDir].push(idx);
-      });
+      rebuildFolderStructure();
 
       currentGroupIndex = 0;
       statusText.textContent = `총 ${textureGroups.length}개 세트 로드 완료 (${isDirectMode ? '폴더 직접 수정 모드' : 'ZIP 다운로드 모드'})`;
       renderSidebar();
-      showCurrentGroup();
+      showCurrentGroup(true);
+    }
+
+    function rebuildFolderStructure() {
+      folderStructure = {};
+      textureGroups.forEach((grp, idx) => {
+        if (!folderStructure[grp.rootDir]) folderStructure[grp.rootDir] = [];
+        folderStructure[grp.rootDir].push(idx);
+      });
     }
 
     function renderSidebar() {
@@ -469,7 +472,7 @@
         li.textContent = `[${idx + 1}] ${grp.items[0].origName} (${grp.rootDir})`;
         li.onclick = () => {
           currentGroupIndex = idx;
-          showCurrentGroup();
+          showCurrentGroup(true);
           renderSidebar();
         };
         allSetsList.appendChild(li);
@@ -487,7 +490,7 @@
         li.textContent = `[${grpIdx + 1}] ${grp.items[0].origName}`;
         li.onclick = () => {
           currentGroupIndex = grpIdx;
-          showCurrentGroup();
+          showCurrentGroup(true);
           renderSidebar();
           renderFolderContentList();
         };
@@ -495,17 +498,32 @@
       });
     }
 
-    function showCurrentGroup() {
-      if (!textureGroups[currentGroupIndex]) return;
+    // 👁️ 맵 미리보기 버그 수정: resetPreview가 true일 때만 A 맵으로 초기화
+    function showCurrentGroup(resetPreview = false) {
+      if (!textureGroups[currentGroupIndex]) {
+        clearWorkArea();
+        return;
+      }
       const grp = textureGroups[currentGroupIndex];
 
       pathLabel.textContent = `📍 경로: ${grp.rootDir} (파일 이름을 클릭하여 미리보기)`;
-      fileRows.innerHTML = '';
 
-      activePreviewIndex = 0;
-      grp.items.forEach((item, idx) => {
-        if (item.mapType === 'A') activePreviewIndex = idx;
-      });
+      if (resetPreview || grp.activePreviewIndex === undefined) {
+        grp.activePreviewIndex = 0;
+        grp.items.forEach((item, idx) => {
+          if (item.mapType === 'A') grp.activePreviewIndex = idx;
+        });
+      }
+
+      materialInput.value = grp.materialName || guessMaterialCategory(grp.items[0].origName, grp.coreName);
+      renderFileRows();
+      loadCanvasImage(grp.items[grp.activePreviewIndex].file);
+    }
+
+    function renderFileRows() {
+      const grp = textureGroups[currentGroupIndex];
+      if (!grp) return;
+      fileRows.innerHTML = '';
 
       grp.items.forEach((item, idx) => {
         const row = document.createElement('div');
@@ -514,12 +532,14 @@
         const nameContainer = document.createElement('div');
         nameContainer.className = 'file-name-container';
 
+        const isCurrentPreview = (idx === grp.activePreviewIndex);
         const lbl = document.createElement('div');
-        lbl.className = `file-name-label ${idx === activePreviewIndex ? 'active' : ''}`;
-        lbl.textContent = `${idx === activePreviewIndex ? '👁️' : '📄'} ${item.origName}`;
+        lbl.className = `file-name-label ${isCurrentPreview ? 'active' : ''}`;
+        lbl.textContent = `${isCurrentPreview ? '👁️' : '📄'} ${item.origName}`;
         lbl.onclick = () => {
-          activePreviewIndex = idx;
-          showCurrentGroup();
+          grp.activePreviewIndex = idx;
+          renderFileRows();
+          loadCanvasImage(grp.items[idx].file);
         };
         nameContainer.appendChild(lbl);
 
@@ -529,7 +549,10 @@
           const btn = document.createElement('button');
           btn.className = `map-btn ${item.mapType === mt ? 'selected' : ''}`;
           btn.textContent = mt;
-          btn.onclick = () => { item.mapType = mt; showCurrentGroup(); };
+          btn.onclick = () => {
+            item.mapType = mt;
+            renderFileRows();
+          };
           btns.appendChild(btn);
         });
 
@@ -548,9 +571,16 @@
         row.appendChild(select);
         fileRows.appendChild(row);
       });
+    }
 
-      materialInput.value = guessMaterialCategory(grp.items[0].origName, grp.coreName);
-      loadCanvasImage(grp.items[activePreviewIndex].file);
+    function clearWorkArea() {
+      pathLabel.textContent = "📍 작업할 텍스처 세트가 없습니다.";
+      fileRows.innerHTML = '';
+      materialInput.value = '';
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      loadedImage = null;
+      statusText.textContent = "🎉 모든 텍스처 정리가 완료되었습니다!";
     }
 
     function loadCanvasImage(file) {
@@ -647,10 +677,10 @@
     });
 
     document.getElementById('prevBtn').onclick = () => {
-      if (currentGroupIndex > 0) { currentGroupIndex--; showCurrentGroup(); renderSidebar(); }
+      if (currentGroupIndex > 0) { currentGroupIndex--; showCurrentGroup(true); renderSidebar(); }
     };
     document.getElementById('nextBtn').onclick = () => {
-      if (currentGroupIndex < textureGroups.length - 1) { currentGroupIndex++; showCurrentGroup(); renderSidebar(); }
+      if (currentGroupIndex < textureGroups.length - 1) { currentGroupIndex++; showCurrentGroup(true); renderSidebar(); }
     };
     document.getElementById('refreshBtn').onclick = () => location.reload();
 
@@ -658,27 +688,72 @@
       if (!textureGroups.length) return;
       textureGroups.splice(currentGroupIndex, 1);
       if (currentGroupIndex >= textureGroups.length) currentGroupIndex = Math.max(0, textureGroups.length - 1);
+      rebuildFolderStructure();
       renderSidebar();
-      if (textureGroups.length) showCurrentGroup();
+      if (textureGroups.length) showCurrentGroup(true);
+      else clearWorkArea();
     };
 
-    document.getElementById('applySetBtn').onclick = () => {
+    // 💾 저장 버튼 복구: 파이썬처럼 내 컴퓨터 폴더에 제자리 저장/이동 수행
+    document.getElementById('applySetBtn').onclick = async () => {
       if (!textureGroups[currentGroupIndex]) return;
+      const grp = textureGroups[currentGroupIndex];
       const cat = materialInput.value.trim() || "Material";
-      textureGroups[currentGroupIndex].materialName = cat;
-      alert(`✅ [${cat}] 설정이 적용되었습니다.`);
-      renderSidebar();
+      grp.materialName = cat;
+
+      categoryCounters[cat] = (categoryCounters[cat] || 0) + 1;
+      const numStr = String(categoryCounters[cat]).padStart(2, '0');
+
+      if (isDirectMode && rootDirHandle) {
+        try {
+          statusText.textContent = `⏳ [${cat}_${numStr}] 내 폴더에 실제 저장 중...`;
+          const targetDirName = cat.split('_')[0];
+          const targetDirHandle = await rootDirHandle.getDirectoryHandle(targetDirName, { create: true });
+
+          for (let j = 0; j < grp.items.length; j++) {
+            const item = grp.items[j];
+            const targetName = `${cat}_${numStr}_${item.mapType}${item.targetExt}`;
+            const processedBlob = await getProcessedImageBlob(item.file, item.targetExt);
+
+            const newFileHandle = await targetDirHandle.getFileHandle(targetName, { create: true });
+            const writable = await newFileHandle.createWritable();
+            await writable.write(processedBlob);
+            await writable.close();
+
+            if (item.parentDirHandle && item.origName !== targetName) {
+              try { await item.parentDirHandle.removeEntry(item.origName); } catch (e) {}
+            }
+          }
+
+          textureGroups.splice(currentGroupIndex, 1);
+          if (currentGroupIndex >= textureGroups.length) currentGroupIndex = Math.max(0, textureGroups.length - 1);
+          rebuildFolderStructure();
+          renderSidebar();
+
+          if (textureGroups.length) showCurrentGroup(true);
+          else clearWorkArea();
+
+          statusText.textContent = `✅ [${cat}_${numStr}] 내 폴더에 성공적으로 저장되었습니다!`;
+        } catch (err) {
+          console.error(err);
+          alert("파일 저장 중 오류가 발생했습니다. 저장소 권한을 확인해주세요.");
+        }
+      } else {
+        statusText.textContent = `✅ [${cat}_${numStr}] 적용 완료 (하단 자동 정리로 ZIP 다운로드 가능)`;
+        currentGroupIndex++;
+        if (currentGroupIndex >= textureGroups.length) currentGroupIndex = 0;
+        renderSidebar();
+        showCurrentGroup(true);
+      }
     };
 
     document.getElementById('autoApplyAllBtn').onclick = async () => {
       if (!textureGroups.length) return alert("처리할 세트가 없습니다.");
 
-      statusText.textContent = "⏳ 정리 작업 진행 중...";
+      statusText.textContent = "⏳ 남은 세트 정리 작업 진행 중...";
 
       if (isDirectMode && rootDirHandle) {
         try {
-          const categoryCounters = {};
-
           for (let i = 0; i < textureGroups.length; i++) {
             const grp = textureGroups[i];
             const cat = grp.materialName || "Material";
@@ -703,7 +778,7 @@
               }
             }
           }
-          alert("🎉 내 컴퓨터 폴더에 텍스처 파일이 성공적으로 직접 정리되었습니다!");
+          alert("🎉 내 컴퓨터 폴더에 남은 모든 텍스처 파일이 성공적으로 저장 및 정리되었습니다!");
           location.reload();
         } catch (err) {
           console.error(err);
@@ -711,7 +786,6 @@
         }
       } else {
         const zip = new JSZip();
-        const categoryCounters = {};
 
         for (let i = 0; i < textureGroups.length; i++) {
           const grp = textureGroups[i];
