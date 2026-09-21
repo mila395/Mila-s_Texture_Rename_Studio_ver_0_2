@@ -27,9 +27,9 @@
     .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
     
     /* Left Sidebar */
-    .sidebar { width: 340px; min-width: 200px; max-width: 600px; background-color: #2C2C2C; display: flex; flex-direction: column; }
+    .sidebar { width: 340px; min-width: 100px; max-width: 90vw; background-color: #2C2C2C; display: flex; flex-direction: column; }
     .sidebar-section { display: flex; flex-direction: column; overflow: hidden; }
-    .sidebar-section.fill { flex: 1; min-height: 100px; }
+    .sidebar-section.fill { flex: 1; min-height: 50px; }
     .panel-title { font-weight: bold; font-size: 13px; padding: 8px 12px; background-color: #242424; color: #B3B3B3; border-bottom: 1px solid #383838; }
     .list-box { flex: 1; overflow-y: auto; list-style: none; }
     .list-item { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #333; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: #DDD; }
@@ -44,13 +44,13 @@
     .resizer-v:hover, .resizer-v.active { background-color: #18A0FB; }
 
     /* Right Work Panel */
-    .work-panel { flex: 1; display: flex; flex-direction: column; background-color: #1E1E1E; padding: 15px 20px; overflow-y: auto; gap: 10px; min-width: 300px; }
+    .work-panel { flex: 1; display: flex; flex-direction: column; background-color: #1E1E1E; padding: 15px 20px; overflow-y: auto; gap: 10px; min-width: 200px; }
     
     .nav-bar { display: flex; justify-content: space-between; align-items: center; }
     .hint-text { font-size: 12px; color: #B3B3B3; }
 
-    /* Canvas Viewport */
-    .canvas-wrapper { background-color: #111; border: 1px solid #444; border-radius: 6px; height: 360px; min-height: 150px; max-height: 750px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    /* Canvas Viewport (한계 해제) */
+    .canvas-wrapper { background-color: #111; border: 1px solid #444; border-radius: 6px; height: 360px; min-height: 50px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     canvas { cursor: crosshair; display: block; }
     .reset-crop-btn { position: absolute; top: 10px; right: 10px; z-index: 5; }
 
@@ -58,7 +58,7 @@
     .files-card { background-color: #2C2C2C; border-radius: 6px; padding: 12px 15px; border: 1px solid #383838; }
     .file-row { display: flex; align-items: center; padding: 4px 0; gap: 8px; }
     
-    .file-name-container { width: 380px; min-width: 380px; height: 28px; display: flex; align-items: center; overflow: hidden; }
+    .file-name-container { width: 380px; min-width: 200px; height: 28px; display: flex; align-items: center; overflow: hidden; }
     .file-name-label { font-size: 13px; color: #FFF; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
     .file-name-label.active { color: #18A0FB; font-weight: bold; }
     
@@ -213,7 +213,7 @@
     const statusText = document.getElementById('statusText');
 
     // ==========================================
-    // 📐 창 및 이미지 뷰어 크기 조절 (Resizer Engine)
+    // 📐 창 및 이미지 뷰어 크기 조절 (한계 해제 버전)
     // ==========================================
     const sidebar = document.getElementById('sidebar');
     const resizerH = document.getElementById('resizerH');
@@ -226,7 +226,7 @@
     secFolder.style.height = '180px';
     secContent.style.height = '180px';
 
-    // 1. 사이드바 좌우 너비 조절
+    // 1. 사이드바 좌우 너비 조절 (한계 해제: 100px ~ 화면 전체의 90%)
     resizerH.addEventListener('mousedown', (e) => {
       e.preventDefault();
       resizerH.classList.add('active');
@@ -234,7 +234,8 @@
       const startWidth = sidebar.getBoundingClientRect().width;
 
       function onMouseMove(e) {
-        const newWidth = Math.max(200, Math.min(600, startWidth + (e.clientX - startX)));
+        const maxW = window.innerWidth * 0.9;
+        const newWidth = Math.max(100, Math.min(maxW, startWidth + (e.clientX - startX)));
         sidebar.style.width = `${newWidth}px`;
       }
 
@@ -249,7 +250,7 @@
       window.addEventListener('mouseup', onMouseUp);
     });
 
-    // 2. 사이드바 내부 상하 높이 조절 (1, 2)
+    // 2. 사이드바 내부 상하 높이 조절 (한계 해제: 30px ~ 모니터 높이 끝까지)
     function setupVerticalResizer(resizerEl, targetEl) {
       resizerEl.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -258,7 +259,8 @@
         const startH = targetEl.getBoundingClientRect().height;
 
         function onMouseMove(e) {
-          const newH = Math.max(80, Math.min(400, startH + (e.clientY - startY)));
+          const maxH = window.innerHeight - 100;
+          const newH = Math.max(30, Math.min(maxH, startH + (e.clientY - startY)));
           targetEl.style.height = `${newH}px`;
         }
 
@@ -276,7 +278,7 @@
     setupVerticalResizer(resizerV1, secFolder);
     setupVerticalResizer(resizerV2, secContent);
 
-    // 3. 🖼️ 이미지 뷰어 (캔버스) 높이 조절
+    // 3. 🖼️ 이미지 뷰어 (캔버스) 높이 조절 (한계 해제: 50px ~ 화면 전체)
     resizerCanvas.addEventListener('mousedown', (e) => {
       e.preventDefault();
       resizerCanvas.classList.add('active');
@@ -284,9 +286,10 @@
       const startH = wrapper.getBoundingClientRect().height;
 
       function onMouseMove(e) {
-        const newH = Math.max(150, Math.min(750, startH + (e.clientY - startY)));
+        const maxH = window.innerHeight - 150;
+        const newH = Math.max(50, Math.min(maxH, startH + (e.clientY - startY)));
         wrapper.style.height = `${newH}px`;
-        resetCropAndZoom(); // 높이 변경 시 캔버스 해상도 및 이미지 재배치
+        resetCropAndZoom();
       }
 
       function onMouseUp() {
