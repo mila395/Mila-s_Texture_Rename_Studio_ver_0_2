@@ -89,12 +89,15 @@
     <div style="display: flex; align-items: center; gap: 10px;">
       <button class="btn btn-success" id="openDirDirectBtn">📁 내 폴더 직접 열기 (Chrome/Edge)</button>
       <label class="btn btn-secondary">
-        📂 폴더 선택 (기타 브라우저)
+        📂 일반 폴더 선택
         <input type="file" id="fileInputFallback" webkitdirectory directory multiple class="hidden">
       </label>
       <span id="statusText" style="font-size: 13px; color: #B3B3B3;">프로젝트 폴더를 선택해주세요.</span>
     </div>
-    <button class="btn btn-secondary" id="refreshBtn">🔄 새로고침</button>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-warning" id="topZipBtn">📦 ZIP 압축파일 다운로드</button>
+      <button class="btn btn-secondary" id="refreshBtn">🔄 새로고침</button>
+    </div>
   </header>
 
   <div class="main-container">
@@ -163,8 +166,9 @@
 
         <div class="action-row">
           <button class="btn btn-danger" id="deleteSetBtn" style="flex: 1;">🗑️ 현재 세트 삭제</button>
-          <button class="btn" id="applySetBtn" style="flex: 1.5;">✅ 현재 세트 즉시 저장/적용 (Enter)</button>
-          <button class="btn btn-warning" id="autoApplyAllBtn" style="flex: 1.5;">🚀 남은 세트 자동 정리</button>
+          <button class="btn" id="applySetBtn" style="flex: 1.2;">✅ 세트 적용/저장 (Enter)</button>
+          <button class="btn btn-warning" id="bottomZipBtn" style="flex: 1.5;">📦 ZIP 압축파일 다운로드</button>
+          <button class="btn btn-success" id="autoApplyAllBtn" style="flex: 1.5;">🚀 남은 세트 자동 정리</button>
         </div>
       </div>
     </div>
@@ -369,7 +373,7 @@
 
     openDirDirectBtn.onclick = async () => {
       if (!('showDirectoryPicker' in window)) {
-        return alert("현재 브라우저는 내 폴더 직접 수정 기능을 지원하지 않습니다. 우측 '폴더 선택 (기타 브라우저)' 버튼을 이용해주세요.");
+        return alert("현재 브라우저는 내 폴더 직접 수정 기능을 지원하지 않습니다. 우측 '일반 폴더 선택' 버튼을 이용해주세요.");
       }
       try {
         rootDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
@@ -479,26 +483,7 @@
       });
     }
 
-    function renderFolderContentList() {
-      folderContentList.innerHTML = '';
-      if (!selectedFolderKey || !folderStructure[selectedFolderKey]) return;
-
-      folderStructure[selectedFolderKey].forEach(grpIdx => {
-        const grp = textureGroups[grpIdx];
-        const li = document.createElement('li');
-        li.className = `list-item ${grpIdx === currentGroupIndex ? 'active' : ''}`;
-        li.textContent = `[${grpIdx + 1}] ${grp.items[0].origName}`;
-        li.onclick = () => {
-          currentGroupIndex = grpIdx;
-          showCurrentGroup(true);
-          renderSidebar();
-          renderFolderContentList();
-        };
-        folderContentList.appendChild(li);
-      });
-    }
-
-    // 👁️ 맵 미리보기 버그 수정: resetPreview가 true일 때만 A 맵으로 초기화
+    // 👁️ 맵 미리보기 버그 수정: 선택한 맵 항목이 정확히 로드되도록 제어
     function showCurrentGroup(resetPreview = false) {
       if (!textureGroups[currentGroupIndex]) {
         clearWorkArea();
@@ -536,6 +521,8 @@
         const lbl = document.createElement('div');
         lbl.className = `file-name-label ${isCurrentPreview ? 'active' : ''}`;
         lbl.textContent = `${isCurrentPreview ? '👁️' : '📄'} ${item.origName}`;
+        
+        // 👁️ 맵 미리보기 클릭 이벤트 (Normal, Roughness 등 다른 맵 이미지 로드)
         lbl.onclick = () => {
           grp.activePreviewIndex = idx;
           renderFileRows();
@@ -694,7 +681,7 @@
       else clearWorkArea();
     };
 
-    // 💾 저장 버튼 복구: 파이썬처럼 내 컴퓨터 폴더에 제자리 저장/이동 수행
+    // 💾 현재 세트 적용/저장
     document.getElementById('applySetBtn').onclick = async () => {
       if (!textureGroups[currentGroupIndex]) return;
       const grp = textureGroups[currentGroupIndex];
@@ -706,7 +693,7 @@
 
       if (isDirectMode && rootDirHandle) {
         try {
-          statusText.textContent = `⏳ [${cat}_${numStr}] 내 폴더에 실제 저장 중...`;
+          statusText.textContent = `⏳ [${cat}_${numStr}] 내 폴더에 저장 중...`;
           const targetDirName = cat.split('_')[0];
           const targetDirHandle = await rootDirHandle.getDirectoryHandle(targetDirName, { create: true });
 
@@ -736,10 +723,10 @@
           statusText.textContent = `✅ [${cat}_${numStr}] 내 폴더에 성공적으로 저장되었습니다!`;
         } catch (err) {
           console.error(err);
-          alert("파일 저장 중 오류가 발생했습니다. 저장소 권한을 확인해주세요.");
+          alert("파일 저장 중 오류가 발생했습니다.");
         }
       } else {
-        statusText.textContent = `✅ [${cat}_${numStr}] 적용 완료 (하단 자동 정리로 ZIP 다운로드 가능)`;
+        statusText.textContent = `✅ [${cat}_${numStr}] 적용 완료 (우측 'ZIP 다운로드' 클릭 시 압축 저장)`;
         currentGroupIndex++;
         if (currentGroupIndex >= textureGroups.length) currentGroupIndex = 0;
         renderSidebar();
@@ -747,12 +734,46 @@
       }
     };
 
+    // 📦 ZIP 압축 다운로드 전용 함수
+    async function executeZipDownload() {
+      if (!textureGroups.length) return alert("다운로드할 세트가 없습니다.");
+
+      statusText.textContent = "⏳ 정리된 텍스처 ZIP 압축 생성 중...";
+      const zip = new JSZip();
+      const zipCounters = {};
+
+      for (let i = 0; i < textureGroups.length; i++) {
+        const grp = textureGroups[i];
+        const cat = grp.materialName || "Material";
+        zipCounters[cat] = (zipCounters[cat] || 0) + 1;
+        const numStr = String(zipCounters[cat]).padStart(2, '0');
+        const folderName = cat.split('_')[0];
+        const folder = zip.folder(folderName);
+
+        for (let j = 0; j < grp.items.length; j++) {
+          const item = grp.items[j];
+          const targetName = `${cat}_${numStr}_${item.mapType}${item.targetExt}`;
+          const processedBlob = await getProcessedImageBlob(item.file, item.targetExt);
+          folder.file(targetName, processedBlob);
+        }
+      }
+
+      zip.generateAsync({ type: "blob" }).then(blob => {
+        saveAs(blob, "Renamed_Textures.zip");
+        statusText.textContent = "🎉 ZIP 압축파일 다운로드가 완료되었습니다!";
+      });
+    }
+
+    // 상단 및 하단 ZIP 다운로드 버튼 연결
+    document.getElementById('topZipBtn').onclick = executeZipDownload;
+    document.getElementById('bottomZipBtn').onclick = executeZipDownload;
+
+    // 🚀 남은 세트 자동 정리
     document.getElementById('autoApplyAllBtn').onclick = async () => {
       if (!textureGroups.length) return alert("처리할 세트가 없습니다.");
 
-      statusText.textContent = "⏳ 남은 세트 정리 작업 진행 중...";
-
       if (isDirectMode && rootDirHandle) {
+        statusText.textContent = "⏳ 모든 세트 내 폴더 정리 중...";
         try {
           for (let i = 0; i < textureGroups.length; i++) {
             const grp = textureGroups[i];
@@ -778,35 +799,14 @@
               }
             }
           }
-          alert("🎉 내 컴퓨터 폴더에 남은 모든 텍스처 파일이 성공적으로 저장 및 정리되었습니다!");
+          alert("🎉 내 컴퓨터 폴더에 모든 텍스처 파일이 성공적으로 정리되었습니다!");
           location.reload();
         } catch (err) {
           console.error(err);
-          alert("파일 저장 중 오류가 발생하였습니다. 권한을 확인해주세요.");
+          alert("파일 저장 중 오류가 발생하였습니다.");
         }
       } else {
-        const zip = new JSZip();
-
-        for (let i = 0; i < textureGroups.length; i++) {
-          const grp = textureGroups[i];
-          const cat = grp.materialName || "Material";
-          categoryCounters[cat] = (categoryCounters[cat] || 0) + 1;
-          const numStr = String(categoryCounters[cat]).padStart(2, '0');
-          const folderName = cat.split('_')[0];
-          const folder = zip.folder(folderName);
-
-          for (let j = 0; j < grp.items.length; j++) {
-            const item = grp.items[j];
-            const targetName = `${cat}_${numStr}_${item.mapType}${item.targetExt}`;
-            const processedBlob = await getProcessedImageBlob(item.file, item.targetExt);
-            folder.file(targetName, processedBlob);
-          }
-        }
-
-        zip.generateAsync({ type: "blob" }).then(blob => {
-          saveAs(blob, "Renamed_Textures.zip");
-          statusText.textContent = "🎉 ZIP 압축 다운로드가 완료되었습니다!";
-        });
+        await executeZipDownload();
       }
     };
 
